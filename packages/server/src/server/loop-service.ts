@@ -5,7 +5,11 @@ import { z } from "zod";
 import type { Logger } from "pino";
 import { writeJsonFileAtomic } from "./atomic-file.js";
 import { curateAgentActivity } from "./agent/activity-curator.js";
-import type { BoundCreateAgentCommand } from "./agent/create-agent/create.js";
+import {
+  type BoundCreateAgentCommand,
+  type EnsureWorkspaceForCreate,
+  formatProviderModel,
+} from "./agent/create-agent/create.js";
 import type { AgentManager } from "./agent/agent-manager.js";
 import {
   buildStructuredAgentResponsePrompt,
@@ -18,7 +22,6 @@ import type {
   AgentProvider,
 } from "./agent/agent-sdk-types.js";
 import { execCommand, platformShell } from "../utils/spawn.js";
-import type { FirstAgentContext } from "./messages.js";
 
 const LOOP_ID_LENGTH = 8;
 const DEFAULT_LOOP_PROVIDER: AgentProvider = "claude";
@@ -210,22 +213,10 @@ function buildVerifierTitle(loop: LoopRecord, iterationIndex: number): string {
   return `${prefix} [loop ${iterationIndex} verifier]`;
 }
 
-function formatProviderModel(provider: string, model: string | null): string {
-  if (!model || provider.includes("/")) {
-    return provider;
-  }
-  return `${provider}/${model}`;
-}
-
 type LoopAgentManager = Pick<
   AgentManager,
   "archiveAgent" | "cancelAgentRun" | "closeAgent" | "runAgent" | "subscribe" | "waitForAgentEvent"
 >;
-
-type EnsureWorkspaceForCreate = (
-  cwd: string,
-  firstAgentContext?: FirstAgentContext,
-) => Promise<string>;
 
 interface LoopExecutionContext {
   workspaceId: Promise<string>;
