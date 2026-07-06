@@ -653,10 +653,14 @@ export class LoopService {
     loop.updatedAt = nowIso();
     await this.persist();
 
+    let workerCanceledReason: string | null = null;
     const unsubscribe = this.options.agentManager.subscribe(
       (event) => {
         if (event.type !== "agent_stream") {
           return;
+        }
+        if (event.event.type === "turn_canceled") {
+          workerCanceledReason = event.event.reason;
         }
         const text = formatStreamLog(event.event);
         if (!text) {
@@ -688,6 +692,9 @@ export class LoopService {
       }
       if (result.status === "error") {
         throw new Error(result.lastMessage ?? `Loop worker ${agent.id} failed`);
+      }
+      if (workerCanceledReason) {
+        throw new Error(`Loop worker ${agent.id} was canceled: ${workerCanceledReason}`);
       }
       return true;
     } catch (error) {
